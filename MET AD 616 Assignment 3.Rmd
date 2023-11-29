@@ -1,0 +1,270 @@
+---
+title: "MET AD 616 Assignment 3"
+author: "JingjianGao"
+date: "2023-11-21"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question #1
+
+### Monte Carlo Simulation
+```{r}
+library(ggplot2)
+
+set.seed(100)
+mean_fixed_cost <- 300e6  
+std_dev_fixed_cost <- 60e6 
+retail_price_initial <- 150000 # Initial retail price
+retail_price_final <- 70000  # Final retail price after two years
+min_variable_cost <- 77000  
+most_likely_variable_cost <- 90000  
+max_variable_cost <- 100000  
+n_simulations <- 10000
+
+# The Demand ranges and their probabilities
+demand_ranges <- list(c(2000, 5000), c(5001, 10000), c(10001, 14000), c(14001, 15000))
+probabilities <- c(0.35, 0.40, 0.20, 0.05)
+
+
+simulation_demand <- function() {
+  index <- sample(1:length(demand_ranges), size = 1, prob = probabilities)
+  return(sample(demand_ranges[[index]][1]:demand_ranges[[index]][2], size = 1))
+}
+
+simulation_profit <- function(n_boats) {
+  fixed_costs <- rnorm(n_simulations, mean_fixed_cost, std_dev_fixed_cost)
+  variable_costs <- runif(n_simulations, min_variable_cost, max_variable_cost)
+  profits <- numeric(n_simulations)
+  
+  for (i in 1:n_simulations) {
+    demand <- simulation_demand()
+    units_sold_at_high_price <- min(n_boats, demand)
+    units_sold_at_low_price <- max(n_boats - demand, 0)
+    total_variable_cost <- variable_costs[i] * n_boats
+    total_cost <- fixed_costs[i] + total_variable_cost
+    total_revenue_high <- retail_price_initial * units_sold_at_high_price
+    total_revenue_low <- retail_price_final * units_sold_at_low_price
+    profits[i] <- total_revenue_high + total_revenue_low - total_cost
+  }
+  
+  return(profits)
+}
+
+
+```
+
+
+
+# 4000 boats
+```{r}
+n_boats <- 4000
+results <- data.frame()
+
+profits <- simulation_profit(n_boats)
+mean_profit <- mean(profits)
+std_dev_profit <- sd(profits)
+results <- rbind(results, data.frame(Production = n_boats, Profit = profits, MeanProfit = mean_profit, StdDevProfit = std_dev_profit))
+
+ggplot(results, aes(x=Profit)) +
+  geom_histogram(bins=50, alpha=0.7) +
+  facet_wrap(~ Production, scales="free") +
+  labs(title="Profit Distribution for producing 4000 boats",
+       x="Profit ($)",
+       y="Frequency") +
+  theme_minimal()
+
+mean_profit
+std_dev_profit
+
+```
+
+## 8000 boats
+
+```{r}
+n_boats <- 8000
+results <- data.frame()
+
+profits <- simulation_profit(n_boats)
+mean_profit <- mean(profits)
+std_dev_profit <- sd(profits)
+results <- rbind(results, data.frame(Production = n_boats, Profit = profits, MeanProfit = mean_profit, StdDevProfit = std_dev_profit))
+
+ggplot(results, aes(x=Profit)) +
+  geom_histogram(bins=50, alpha=0.7) +
+  facet_wrap(~ Production, scales="free") +
+  labs(title="Profit Distribution for producing 8000 boats",
+       x="Profit ($)",
+       y="Frequency") +
+  theme_minimal()
+
+mean_profit
+std_dev_profit
+
+```
+
+## 12000 boats
+```{r}
+n_boats <- 12000
+results <- data.frame()
+
+profits <- simulation_profit(n_boats)
+mean_profit <- mean(profits)
+std_dev_profit <- sd(profits)
+results <- rbind(results, data.frame(Production = n_boats, Profit = profits, MeanProfit = mean_profit, StdDevProfit = std_dev_profit))
+
+ggplot(results, aes(x=Profit)) +
+  geom_histogram(bins=50, alpha=0.7) +
+  facet_wrap(~ Production, scales="free") +
+  labs(title="Profit Distribution for producing 12000 boats",
+       x="Profit ($)",
+       y="Frequency") +
+  theme_minimal()
+
+mean_profit
+std_dev_profit
+
+```
+
+## 15000 boats
+```{r}
+n_boats <- 15000
+results <- data.frame()
+
+profits <- simulation_profit(n_boats)
+mean_profit <- mean(profits)
+std_dev_profit <- sd(profits)
+results <- rbind(results, data.frame(Production = n_boats, Profit = profits, MeanProfit = mean_profit, StdDevProfit = std_dev_profit))
+
+ggplot(results, aes(x=Profit)) +
+  geom_histogram(bins=50, alpha=0.7) +
+  facet_wrap(~ Production, scales="free") +
+  labs(title="Profit Distribution for producing 15000 boats",
+       x="Profit ($)",
+       y="Frequency") +
+  theme_minimal()
+
+mean_profit
+std_dev_profit
+
+```
+
+
+## Question #2
+
+```{r}
+data <- read.csv("/Users/billg/Desktop/MA 679/MET 616/Module-3/Assignment 3 Problem 2 data.csv")
+
+# a)
+ggplot(data, aes(x=party_size)) +
+  geom_histogram(binwidth = 1, fill="darkgreen", color="black") +
+  labs(title="Histogram of Party Sizes", x="Party Size", y="Frequency") +
+  theme_minimal()
+
+# Since the histogram does not support the idea that each party size is equally likely, the discrete uniform distribution is not a good fit.
+
+# The histogram does not show a clear Poisson distribution as it lacks a distinct peak at lower values.
+
+# The geometric distribution seems to be a good fit since the histogram shows a decline in frequency as party size increase.
+
+# b)
+library(MASS)
+library(survival)
+library(fitdistrplus)
+
+shift_value <- 10
+shifted_data <- data$party_size - shift_value
+shifted_data <- shifted_data[shifted_data > 0]
+
+fit_geom <- fitdist(shifted_data, "geom", discrete = TRUE)
+
+gof_geom <- gofstat(fit_geom)
+
+print(fit_geom)
+print(gof_geom)
+
+# In this case, we should subtract 10 to get the best fit
+
+# c)
+fit_gamma <- fitdist(data$rev_per_person,"gamma")
+print(summary(fit_gamma))
+
+# gamma distribution results in the best fit.
+# The shape parameter is about 15.9386656
+
+# d)
+qqplot <- qqcomp(fit_gamma, main="QQ plot for gamma fit")
+densityplot <- denscomp(fit_gamma, main= "Density comparison for gamma fit")
+
+# The Gamma distribution appears to be a good fit
+
+# e)
+# It appears that there is a significant positive correlation between party size and per person spending in the data.
+
+# f)
+shift_value <- 10 
+shape_param <- 12.5432 
+scale_param <- 12.3414 
+correlation_coefficient <- 0.507 
+n <- 100000
+
+party_size_simulation <- rgeom(n, prob = 1 / (mean(data$party_size) - shift_value + 1)) + shift_value
+
+spending_simulation <- rgamma(n, shape = shape_param, scale = scale_param)
+
+spending_simulation_adjusted <- spending_simulation * (1 + correlation_coefficient * (party_size_simulation - mean(party_size_simulation)) / sd(party_size_simulation))
+
+revenues <- party_size_simulation * spending_simulation_adjusted
+
+hist(revenues, breaks = 100, main = "Histogram of Simulated Revenues", xlab = "Revenue")
+
+mean_revenue <- mean(revenues)
+std_dev_revenue <- sd(revenues)
+
+mean_revenue
+std_dev_revenue
+
+# g)
+over5000 <- sum(revenues >= 5000)
+frequency_over_5000 <- over5000/n
+frequency_over_5000
+
+# About 21% of the time
+
+# f)
+shift_value <- 10 
+shape_param <- 12.5432 
+scale_param <- 12.3414 
+n <- 100000
+
+
+party_size_simulation_independent <- rgeom(n, prob = 1 / (mean(data$party_size) - shift_value + 1)) + shift_value
+
+spending_simulation_independent <- rgamma(n, shape = shape_param, scale = scale_param)
+
+
+revenues_independent <- party_size_simulation_independent * spending_simulation_independent
+
+hist(revenues_independent, breaks = 100, main = "Histogram of Simulated Revenues (Ignoring Correlation)", xlab = "Revenue")
+
+mean_revenue_independent <- mean(revenues_independent)
+std_dev_revenue_independent <- sd(revenues_independent)
+
+over_5000_independent <- sum(revenues_independent >= 5000)
+frequency_over_5000_independent <- over_5000_independent / n
+
+mean_revenue_independent
+std_dev_revenue_independent
+frequency_over_5000_independent
+
+# The mean and standard deviations are smaller compared to the simulation with coreelation considered.
+
+# The frequency drops to 12% of the time
+
+```
+
